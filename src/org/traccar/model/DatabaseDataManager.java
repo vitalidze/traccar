@@ -82,7 +82,7 @@ public class DatabaseDataManager implements DataManager {
 
         query = properties.getProperty("database.insertPosition");
         if (query != null) {
-            queryAddPosition = new NamedParameterStatement(connection, query);
+            queryAddPosition = new NamedParameterStatement(connection, Statement.RETURN_GENERATED_KEYS, query);
         }
 
         query = properties.getProperty("database.updateLatestPosition");
@@ -132,7 +132,7 @@ public class DatabaseDataManager implements DataManager {
     public synchronized Long addPosition(Position position) throws SQLException {
 
         if (queryAddPosition != null) {
-            queryAddPosition.prepare(Statement.RETURN_GENERATED_KEYS);
+            queryAddPosition.prepare();
 
             queryAddPosition = assignVariables(queryAddPosition, position);
 
