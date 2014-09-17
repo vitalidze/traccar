@@ -45,6 +45,7 @@ public class DatabaseDataManager implements DataManager {
     private NamedParameterStatement queryGetDevices;
     private NamedParameterStatement queryAddPosition;
     private NamedParameterStatement queryUpdateLatestPosition;
+    private NamedParameterStatement queryLastIndex;
 
     /**
      * Initialize database
@@ -88,6 +89,11 @@ public class DatabaseDataManager implements DataManager {
         query = properties.getProperty("database.updateLatestPosition");
         if (query != null) {
             queryUpdateLatestPosition = new NamedParameterStatement(connection, query);
+        }
+
+        query = properties.getProperty("database.selectLastIndex");
+        if (query != null) {
+            queryLastIndex = new NamedParameterStatement(connection, query);
         }
     }
 
@@ -157,6 +163,19 @@ public class DatabaseDataManager implements DataManager {
             
             queryUpdateLatestPosition.executeUpdate();
         }
+    }
+
+    @Override
+    public Long getLastIndex(long deviceId) throws SQLException {
+        if (queryLastIndex != null) {
+            queryLastIndex.prepare();
+            queryLastIndex.setLong("device_id", deviceId);
+            ResultSet result = queryLastIndex.executeQuery();
+            if (result.next()) {
+                return result.getLong(1);
+            }
+        }
+        return null;
     }
 
     private NamedParameterStatement assignVariables(NamedParameterStatement preparedStatement, Position position) throws SQLException {

@@ -17,11 +17,9 @@ package org.traccar.protocol;
 
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;
-import java.sql.ResultSet;
 import java.util.Calendar;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Properties;
 import java.util.TimeZone;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
@@ -29,10 +27,8 @@ import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelHandlerContext;
 import org.traccar.BaseProtocolDecoder;
 import org.traccar.ServerManager;
-import org.traccar.helper.AdvancedConnection;
 import org.traccar.helper.Crc;
 import org.traccar.helper.Log;
-import org.traccar.helper.NamedParameterStatement;
 import org.traccar.model.ExtendedInfoFormatter;
 import org.traccar.model.Position;
 
@@ -78,18 +74,7 @@ public class ApelProtocolDecoder extends BaseProtocolDecoder {
 
     private void loadLastIndex() {
         try {
-            Properties p = getServerManager().getProperties();
-            if (p.contains("database.selectLastIndex")) {
-                AdvancedConnection connection = new AdvancedConnection(
-                        p.getProperty("database.url"), p.getProperty("database.user"), p.getProperty("database.password"));
-                NamedParameterStatement queryLastIndex = new NamedParameterStatement(connection, p.getProperty("database.selectLastIndex"));
-                queryLastIndex.prepare();
-                queryLastIndex.setLong("device_id", deviceId);
-                ResultSet result = queryLastIndex.executeQuery();
-                if (result.next()) {
-                    lastIndex = result.getLong(1);
-                }
-            }
+            lastIndex = getDataManager().getLastIndex(deviceId);
         } catch(Exception error) {
         }
     }

@@ -25,4 +25,8 @@ public class TestDataManager implements DataManager {
     @Override
     public void updateLatestPosition(Position position, Long positionId) throws Exception {
     }
+    @Override
+    public Long getLastIndex(long deviceId) throws Exception {
+        return null;
+    }
 }

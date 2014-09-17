@@ -33,5 +33,6 @@ public interface DataManager {
      */
     public Long addPosition(Position position) throws Exception;
     public void updateLatestPosition(Position position, Long positionId) throws Exception;
+    public Long getLastIndex(long deviceId) throws Exception;
 
 }
