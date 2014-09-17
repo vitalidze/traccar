@@ -21,10 +21,12 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.sql.*;
 import java.util.*;
+import javax.sql.DataSource;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
-import org.traccar.helper.AdvancedConnection;
+
+import com.mchange.v2.c3p0.ComboPooledDataSource;
 import org.traccar.helper.DriverDelegate;
 import org.traccar.helper.Log;
 import org.traccar.helper.NamedParameterStatement;
@@ -47,6 +49,8 @@ public class DatabaseDataManager implements DataManager {
     private NamedParameterStatement queryUpdateLatestPosition;
     private NamedParameterStatement queryLastIndex;
 
+    private DataSource dataSource;
+
     /**
      * Initialize database
      */
@@ -67,33 +71,57 @@ public class DatabaseDataManager implements DataManager {
             }
         }
 
-        // Connect database
+        // Load data source class
+        Class dataSourceClass = null;
+        String dataSourceClassName = properties.getProperty("database.dataSource");
+        if (dataSourceClassName != null) {
+            String driverFile = properties.getProperty("database.driverFile");
+            if (driverFile != null) {
+                URL url = new URL("jar:file:" + new File(driverFile).getAbsolutePath() + "!/");
+                URLClassLoader cl = new URLClassLoader(new URL[] { url });
+                dataSourceClass = Class.forName(dataSourceClassName, true, cl);
+            } else {
+                dataSourceClass = Class.forName(dataSourceClassName);
+            }
+        }
+
+        // Initialize data source
         String url = properties.getProperty("database.url");
         String user = properties.getProperty("database.user");
         String password = properties.getProperty("database.password");
-        AdvancedConnection connection = new AdvancedConnection(url, user, password);
+
+        ComboPooledDataSource comboPooledDataSource = new ComboPooledDataSource();
+        comboPooledDataSource.setDriverClass(driver);
+        comboPooledDataSource.setJdbcUrl(url);
+        if (user != null && password != null) {
+            comboPooledDataSource.setUser(user);
+            comboPooledDataSource.setPassword(password);
+        }
+        comboPooledDataSource.setIdleConnectionTestPeriod(600);
+
+        dataSource = comboPooledDataSource;
 
         // Load statements from configuration
         String query;
 
         query = properties.getProperty("database.selectDevice");
         if (query != null) {
-            queryGetDevices = new NamedParameterStatement(connection, query);
+            queryGetDevices = new NamedParameterStatement(dataSource, query);
         }
 
         query = properties.getProperty("database.insertPosition");
         if (query != null) {
-            queryAddPosition = new NamedParameterStatement(connection, Statement.RETURN_GENERATED_KEYS, query);
+            queryAddPosition = new NamedParameterStatement(dataSource, Statement.RETURN_GENERATED_KEYS, query);
         }
 
         query = properties.getProperty("database.updateLatestPosition");
         if (query != null) {
-            queryUpdateLatestPosition = new NamedParameterStatement(connection, query);
+            queryUpdateLatestPosition = new NamedParameterStatement(dataSource, query);
         }
 
         query = properties.getProperty("database.selectLastIndex");
         if (query != null) {
-            queryLastIndex = new NamedParameterStatement(connection, query);
+            queryLastIndex = new NamedParameterStatement(dataSource, query);
         }
     }
 
@@ -218,4 +246,7 @@ public class DatabaseDataManager implements DataManager {
 
     }
 
+    public DataSource getDataSource() {
+        return dataSource;
+    }
 }

@@ -178,7 +178,7 @@ public class ServerManager {
         
         // Initialize web server
         if (Boolean.valueOf(properties.getProperty("http.enable"))) {
-            webServer = new WebServer(properties);
+            webServer = new WebServer(properties, ((DatabaseDataManager) dataManager).getDataSource());
         }
     }
 

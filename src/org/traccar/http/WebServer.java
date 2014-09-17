@@ -15,10 +15,7 @@
  */
 package org.traccar.http;
 
-import java.io.File;
 import java.net.InetSocketAddress;
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.util.Properties;
 import javax.naming.Context;
 import javax.naming.InitialContext;
@@ -34,41 +31,16 @@ public class WebServer {
 
     private Server server;
 
-    private void initDataSource(Properties properties) {
+    private void initDataSource(DataSource dataSource) {
         try {
-
             Context context = new InitialContext();
-
-            String dataSourceClass = properties.getProperty("database.dataSource");
-            if (dataSourceClass != null) {
-
-                Class clazz;
-                
-                String driverFile = properties.getProperty("database.driverFile");
-                if (driverFile != null) {
-                    URL url = new URL("jar:file:" + new File(driverFile).getAbsolutePath() + "!/");
-                    URLClassLoader cl = new URLClassLoader(new URL[] { url });
-                    clazz = Class.forName(dataSourceClass, true, cl);
-                } else {
-                    clazz = Class.forName(dataSourceClass);
-                }
-                
-                if (clazz != null) {
-                    DataSource ds = (DataSource) clazz.newInstance();
-                    clazz.getMethod("setURL", String.class).invoke(ds, properties.getProperty("database.url"));
-                    clazz.getMethod("setUser", String.class).invoke(ds, properties.getProperty("database.user"));
-                    clazz.getMethod("setPassword", String.class).invoke(ds, properties.getProperty("database.password"));
-
-                    context.bind("java:/DefaultDS", ds);
-                }
-            }
-
+            context.bind("java:/DefaultDS", dataSource);
         } catch (Exception error) {
             Log.warning(error);
         }
     }
 
-    public WebServer(Properties properties) {
+    public WebServer(Properties properties, DataSource dataSource) {
         String address = properties.getProperty("http.address");
         Integer port = Integer.valueOf(properties.getProperty("http.port", "8082"));
         if (address == null) {
@@ -77,7 +49,7 @@ public class WebServer {
             server = new Server(new InetSocketAddress(address, port));
         }
 
-        initDataSource(properties);
+        initDataSource(dataSource);
 
         WebAppContext webapp = new WebAppContext();
         webapp.setContextPath("/");
