@@ -30,10 +30,11 @@ public class FilterHandler extends BaseDataHandler {
     private final boolean filterApproximate;
     private final int filterDistance;
     private final long filterLimit;
+    private final int filterSpeed;
 
     public FilterHandler(
             boolean filterInvalid, boolean filterZero, boolean filterDuplicate, boolean filterFuture,
-            boolean filterApproximate, int filterDistance, long filterLimit) {
+            boolean filterApproximate, int filterDistance, long filterLimit, int filterSpeed) {
 
         this.filterInvalid = filterInvalid;
         this.filterZero = filterZero;
@@ -42,6 +43,7 @@ public class FilterHandler extends BaseDataHandler {
         this.filterFuture = filterFuture;
         this.filterApproximate = filterApproximate;
         this.filterLimit = filterLimit;
+        this.filterSpeed = filterSpeed;
     }
 
     public FilterHandler() {
@@ -54,6 +56,7 @@ public class FilterHandler extends BaseDataHandler {
         filterApproximate = config.getBoolean("filter.approximate");
         filterDistance = config.getInteger("filter.distance");
         filterLimit = config.getLong("filter.limit") * 1000;
+        filterSpeed = config.getInteger("filter.speed");
     }
 
     private Position getLastPosition(long deviceId) {
@@ -122,14 +125,26 @@ public class FilterHandler extends BaseDataHandler {
         }
     }
 
+    private boolean filterSpeed(Position position) {
+        if (filterSpeed > 0) {
+            Position last = getLastPosition(position.getDeviceId());
+            if (last != null) {
+                double distance = DistanceCalculator.distance(
+                        position.getLatitude(), position.getLongitude(),
+                        last.getLatitude(), last.getLongitude());
+                long time = position.getFixTime().getTime() - last.getFixTime().getTime();
+
+                return distance / 1000 / (time / 1000d / 60 / 60) > filterSpeed;
+            }
+        }
+        return false;
+    }
+
     private boolean filter(Position p) {
 
         boolean result = filterInvalid(p) || filterZero(p) || filterDuplicate(p)
-                || filterFuture(p) || filterApproximate(p) || filterDistance(p);
-
-        if (filterLimit(p)) {
-            result = false;
-        }
+                || filterFuture(p) || filterApproximate(p) || filterDistance(p)
+                || filterSpeed(p) || filterLimit(p);
 
         if (result) {
             Log.info("Position filtered from " + p.getDeviceId());
