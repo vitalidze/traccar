@@ -31,6 +31,7 @@ public class FilterHandler extends BaseDataHandler {
     private boolean filterStatic;
     private int filterDistance;
     private long filterLimit;
+    private int filterSpeed;
 
     public void setFilterInvalid(boolean filterInvalid) {
         this.filterInvalid = filterInvalid;
@@ -64,6 +65,10 @@ public class FilterHandler extends BaseDataHandler {
         this.filterLimit = filterLimit;
     }
 
+    public void setFilterSpeed(int filterSpeed) {
+        this.filterSpeed = filterSpeed;
+    }
+
     public FilterHandler() {
         Config config = Context.getConfig();
         if (config != null) {
@@ -75,6 +80,7 @@ public class FilterHandler extends BaseDataHandler {
             filterStatic = config.getBoolean("filter.static");
             filterDistance = config.getInteger("filter.distance");
             filterLimit = config.getLong("filter.limit") * 1000;
+            filterSpeed = config.getInteger("filter.speed");
         }
     }
 
@@ -148,6 +154,21 @@ public class FilterHandler extends BaseDataHandler {
         }
     }
 
+    private boolean filterSpeed(Position position) {
+        if (filterSpeed > 0) {
+            Position last = getLastPosition(position.getDeviceId());
+            if (last != null) {
+                double distance = DistanceCalculator.distance(
+                        position.getLatitude(), position.getLongitude(),
+                        last.getLatitude(), last.getLongitude());
+                long time = position.getFixTime().getTime() - last.getFixTime().getTime();
+
+                return distance / 1000 / (time / 1000d / 60 / 60) > filterSpeed;
+            }
+        }
+        return false;
+    }
+
     private boolean filter(Position position) {
 
         StringBuilder filterType = new StringBuilder();
@@ -172,6 +193,9 @@ public class FilterHandler extends BaseDataHandler {
         }
         if (filterDistance(position)) {
             filterType.append("Distance ");
+        }
+        if (filterSpeed(position)) {
+            filterType.append("Speed ");
         }
 
         if (filterType.length() > 0 && !filterLimit(position)) {
